@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 
+python voice_timer.py
 const app = express();
 const PORT = 3000;
 
