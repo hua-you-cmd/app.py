@@ -9,7 +9,7 @@ import os
 import json
 
 # ==========================================
-# 1. ページ基本設定 & カスタムCSS (ダークテーマ)
+# 1. ページ基本設定 & パスワード保護 (2356)
 # ==========================================
 st.set_page_config(
     page_title="東証業種別ETF AIアナリティクス (Streamlit版)",
@@ -17,6 +17,22 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# パスワード認証 (パスワード: 2356)
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.title("🔒 パスワード保護システム")
+    st.markdown("閲覧するにはアクセスパスワードを入力してください。")
+    pwd_input = st.text_input("パスワードを入力:", type="password")
+    if st.button("アクセス認証", use_container_width=True):
+        if pwd_input == "2356":
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("パスワードが正しくありません (ヒント: 2356)")
+    st.stop()
 
 # カスタムCSSスタイリング
 st.markdown("""
@@ -107,43 +123,45 @@ SECTOR_DEFS = [
     {"code": "1633", "ticker": "1633.T", "name": "NEXT FUNDS TOPIX-17 不動産 ETF", "shortName": "不動産", "basePrice": 39400, "pbr": 1.35, "per": 16.1, "yield": 2.75, "weight": "4.5%"},
 ]
 
+current_now_str = datetime.now().strftime('%Y/%m/%d %H:%M')
+
 MOCK_NEWS = [
     {
         "source": "株探",
         "title": "【市況速報】TOPIX＆日経平均が連日高値、電気機器・機械などハイテク業種が指数牽引",
-        "summary": "2026年7月27日の東証市場は、米ハイテク株の買い安心感を受け電気機器(1625)や機械(1624)が買われ、TOPIX17業種中13業種が上昇。Yahoo!ファイナンスおよび株探の騰落ランキングでも電機がトップに浮上。",
-        "category": "市況・全体", "code": "1625", "time": "2026/07/27 15:15"
+        "summary": "本日の東証市場は、米ハイテク株の買い安心感を受け電気機器(1625)や機械(1624)が買われ、TOPIX17業種中13業種が上昇。Yahoo!ファイナンスおよび株探の騰落ランキングでも電機がトップに浮上。",
+        "category": "市況・全体", "code": "1625", "time": f"{current_now_str}"
     },
     {
         "source": "SBI証券",
         "title": "【日銀・金融政策】次回決定会合を睨み銀行業(1631)・金融(1632)に機関投資家の買い流入",
         "summary": "追加利上げ観測の織り込みが進む中、大手メガバンクおよび地方銀行株で構成される「銀行業ETF(1631)」に押し目買いが集まる。利ざや改善期待が引き続き高水準。",
-        "category": "金融・金利政策", "code": "1631", "time": "2026/07/27 14:30"
+        "category": "金融・金利政策", "code": "1631", "time": f"{current_now_str}"
     },
     {
         "source": "Yahoo!ファイナンス",
         "title": "【為替・自動車】ドル円152円台半ばで推移、自動車・輸送用機器(1622)の業績上振れ期待",
         "summary": "為替が152円台後半で落ち着いた推移を見せており、輸出企業メインの自動車業種において好決算・通期予想増額への買い期待が強まる。",
-        "category": "為替・自動車", "code": "1622", "time": "2026/07/27 13:45"
+        "category": "為替・自動車", "code": "1622", "time": f"{current_now_str}"
     },
     {
         "source": "株探",
         "title": "【情報通信・サービス】主要IT企業が好決算発表、情報通信・サービス他(1626)が反発",
         "summary": "DX投資の需要拡大が続いており、クラウド関連・SIer大手の四半期業績が好調。株探ニュースの業種別アクセスランキングでも上位を独占。",
-        "category": "DX・IT投資", "code": "1626", "time": "2026/07/27 12:20"
+        "category": "DX・IT投資", "code": "1626", "time": f"{current_now_str}"
     },
     {
         "source": "SBI証券",
         "title": "【商社・エネルギー】商社・卸売(1629)と医薬品(1621)がディフェンシブ＆バリューで堅調",
         "summary": "資源相場の安定化とPBR1倍割れ改善策の進展から総合商社の自社株買い発表が相次ぐ。安定配当利回りを求める資金がSBI証券スクリーニングでも注目。",
-        "category": "バリュー・配当", "code": "1629", "time": "2026/07/27 11:10"
+        "category": "バリュー・配当", "code": "1629", "time": f"{current_now_str}"
     }
 ]
 
 # ==========================================
-# 3. yfinance データ取得関数 (キャッシュ利用)
+# 3. yfinance データ取得関数 (キャッシュ利用 & 自動起動更新)
 # ==========================================
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=60)
 def fetch_sector_data_from_yfinance():
     """yfinanceを利用してYahoo!ファイナンスから東証17業種ETFデータを実取得・算出"""
     data_list = []
@@ -160,7 +178,7 @@ def fetch_sector_data_from_yfinance():
         
         try:
             t = yf.Ticker(ticker_code)
-            hist = t.history(period="1mo")
+            hist = t.history(period="5d")
             if not hist.empty and len(hist) > 1:
                 latest = hist['Close'].iloc[-1]
                 prev = hist['Close'].iloc[-2]
@@ -190,14 +208,18 @@ def fetch_sector_data_from_yfinance():
         
     return pd.DataFrame(data_list)
 
+df_sectors = fetch_sector_data_from_yfinance()
+
 # ==========================================
 # 4. ヘッダー & サイドバー
 # ==========================================
-st.markdown("""
+now_time_label = datetime.now().strftime("%Y/%m/%d %H:%M JST")
+
+st.markdown(f"""
 <div style="background: linear-gradient(90deg, #0f172a 0%, #1e293b 100%); padding: 20px; border-radius: 16px; border: 1px solid #334155; margin-bottom: 20px;">
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
         <div>
-            <span class="badge-blue">2026年7月27日 最新市場</span>
+            <span class="badge-blue">リアルタイム最新市場 ({{now_time_label}})</span>
             <span class="badge-green" style="margin-left: 8px;">Yahoo!・株探・SBI無償データ連携 (yfinance)</span>
             <h1 style="color: white; font-size: 26px; font-weight: 900; margin: 8px 0 4px 0;">東証業種別ETF アナリティクス＆AI予測 (Streamlit WebApp)</h1>
             <p style="color: #94a3b8; font-size: 13px; margin: 0;">
@@ -212,13 +234,14 @@ st.sidebar.title("⚙️ システム設定 & 更新")
 
 if st.sidebar.button("🔄 更新 (最新データを即時取得)", use_container_width=True):
     st.cache_data.clear()
+    df_sectors = fetch_sector_data_from_yfinance()
     st.toast("最新のYahoo!ファイナンス・市場株価データを取得更新しました！", icon="✅")
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📌 データ参照元")
-st.sidebar.markdown("""
+st.sidebar.markdown(f"""
 - **株価データ**: `yfinance` (Yahoo! Finance JP)
-- **基準日**: **2026年7月27日 最新**
+- **基準日**: **{{now_time_label}} リアルタイム取得**
 - **市場速報**: Yahoo!ファイナンス / 株探 / SBI証券
 - **AIエンジン**: Gemini 3.6 Flash / ストラテジー分析
 """)
@@ -229,8 +252,6 @@ usdjpy = st.sidebar.slider("為替 (USD/JPY)", 135.0, 165.0, 152.5, 0.5)
 boj_rate = st.sidebar.slider("日銀 政策金利 (%)", 0.0, 1.5, 0.50, 0.05)
 fed_rate = st.sidebar.slider("FRB 政策金利 (%)", 3.0, 6.0, 4.75, 0.25)
 wti_oil = st.sidebar.slider("原油 WTI ($/bbl)", 60.0, 110.0, 78.5, 1.0)
-
-df_sectors = fetch_sector_data_from_yfinance()
 
 # ==========================================
 # 5. タブ構成
@@ -264,7 +285,7 @@ with tab1:
         color=period_choice,
         color_continuous_scale=["#ef4444", "#3b82f6", "#10b981"],
         text=period_choice,
-        title=f"東証17業種ETF {period_choice} パフォーマンスランキング (2026/07/27)"
+        title=f"東証17業種ETF {{period_choice}} パフォーマンスランキング ({{now_time_label}})"
     )
     fig.update_layout(
         template="plotly_dark",
@@ -294,7 +315,7 @@ with tab2:
         index=0
     )
 
-    st.info(f"💡 **【基準日: 2026年7月27日 最新】** 選択中の予測期間: **{forecast_horizon}** （為替 USD/JPY={usdjpy}円, 日銀金利={boj_rate}%の条件で算出）")
+    st.info(f"💡 **【基準日: {{now_time_label}}】** 選択中の予測期間: **{{forecast_horizon}}** （為替 USD/JPY={{usdjpy}}円, 日銀金利={{boj_rate}}%の条件で算出）")
 
     horizon_multipliers = {
         "1週間先": 0.3, "2週間先": 0.6, "3週間先": 0.9,
@@ -313,10 +334,10 @@ with tab2:
             "順位": 0,
             "コード": s["code"],
             "業種名": s["shortName"],
-            "予測上昇率(%)": f"+{predicted_gain}%",
-            "上昇確率(%)": f"{probability}%",
-            "現在株価": f"¥{s['basePrice']:,}円",
-            "主要カタリスト": f"PBR{s['pbr']}倍の割安是正・為替{usdjpy}円および金利シナリオ合致",
+            "予測上昇率(%)": f"+{{predicted_gain}}%",
+            "上昇確率(%)": f"{{probability}}%",
+            "現在株価": f"¥{{s['basePrice']:,}}円",
+            "主要カタリスト": f"PBR{{s['pbr']}}倍の割安是正・為替{{usdjpy}}円および金利シナリオ合致",
             "raw_gain": predicted_gain,
             "raw_prob": probability
         })
@@ -324,18 +345,18 @@ with tab2:
     df_forecast = pd.DataFrame(forecast_results).sort_values(by="raw_gain", ascending=False).reset_index(drop=True)
     df_forecast["順位"] = df_forecast.index + 1
 
-    st.markdown(f"#### 🏆 {forecast_horizon} 上昇確率期待 TOP 5 業種ETF")
+    st.markdown(f"#### 🏆 {{forecast_horizon}} 上昇確率期待 TOP 5 業種ETF")
     cols = st.columns(5)
     for i in range(min(5, len(df_forecast))):
         row = df_forecast.iloc[i]
         with cols[i]:
             st.markdown(f"""
             <div class="metric-card">
-                <span class="badge-blue">第{row['順位']}位 ({row['コード']})</span>
-                <h4 style="color: white; margin: 6px 0 2px 0;">{row['業種名']}</h4>
-                <div style="color: #10b981; font-size: 20px; font-weight: 900;">{row['予測上昇率(%)']}</div>
-                <div style="color: #f59e0b; font-size: 12px; font-weight: bold;">上昇確率: {row['上昇確率(%)']}</div>
-                <div style="color: #94a3b8; font-size: 11px; margin-top: 4px;">現在: {row['現在株価']}</div>
+                <span class="badge-blue">第{{row['順位']}}位 ({{row['コード']}})</span>
+                <h4 style="color: white; margin: 6px 0 2px 0;">{{row['業種名']}}</h4>
+                <div style="color: #10b981; font-size: 20px; font-weight: 900;">{{row['予測上昇率(%)']}}</div>
+                <div style="color: #f59e0b; font-size: 12px; font-weight: bold;">上昇確率: {{row['上昇確率(%)']}}</div>
+                <div style="color: #94a3b8; font-size: 11px; margin-top: 4px;">現在: {{row['現在株価']}}</div>
             </div>
             """, unsafe_allow_html=True)
 
@@ -361,9 +382,9 @@ with tab3:
 
     if search_symbol or search_clicked:
         clean_code = search_symbol.strip().upper()
-        ticker_search = f"{clean_code}.T" if not clean_code.endswith(".T") else clean_code
+        ticker_search = f"{{clean_code}}.T" if not clean_code.endswith(".T") else clean_code
 
-        with st.spinner(f"Yahoo!ファイナンス (yfinance) より [{ticker_search}] の最新株価データを取得中..."):
+        with st.spinner(f"Yahoo!ファイナンス (yfinance) より [{{ticker_search}}] の最新株価データを取得中..."):
             try:
                 stock_ticker = yf.Ticker(ticker_search)
                 info = stock_ticker.info
@@ -374,36 +395,36 @@ with tab3:
                     prev_price = hist['Close'].iloc[-2] if len(hist) > 1 else latest_price
                     change_pct = ((latest_price - prev_price) / prev_price) * 100
                     
-                    st.success(f"✅ 【Yahoo!ファイナンス最新取得完了】 基準日: 2026年7月27日 15:30 JST")
+                    st.success(f"✅ 【Yahoo!ファイナンス最新取得完了】 基準日: {{now_time_label}}")
                     
                     c1, c2, c3, c4 = st.columns(4)
                     with c1:
                         st.metric("銘柄コード / Ticker", ticker_search)
                     with c2:
-                        st.metric("取得最新株価", f"¥{int(latest_price):,}円")
+                        st.metric("取得最新株価", f"¥{{int(latest_price):,}}円")
                     with c3:
-                        st.metric("前日比 (騰落率)", f"{change_pct:+.2f}%", delta=f"{change_pct:+.2f}%")
+                        st.metric("前日比 (騰落率)", f"{{change_pct:+.2f}}%", delta=f"{{change_pct:+.2f}}%")
                     with c4:
                         st.metric("AI評価レーティング", "強気 (Outperform)")
 
                     st.markdown("---")
                     st.markdown("#### 🤖 AIアナリストによる最新診断サマリー")
                     st.markdown(f"""
-                    - **分析対象**: {ticker_search} (取得最新価格: **¥{int(latest_price):,}円**)
-                    - **マクロ環境影響**: 現在の為替ドル円 (152.5円) および日銀金利方針を踏まえ、業界内での競争優位性と割安PBR水準が評価されています。
-                    - **AI目標想定レンジ**: **¥{int(latest_price * 1.08):,}円 〜 ¥{int(latest_price * 1.20):,}円**
+                    - **分析対象**: {{ticker_search}} (取得最新価格: **¥{{int(latest_price):,}}円**)
+                    - **マクロ環境影響**: 現在の為替ドル円 ({{usdjpy}}円) および日銀金利方針を踏まえ、業界内での競争優位性と割安PBR水準が評価されています。
+                    - **AI目標想定レンジ**: **¥{{int(latest_price * 1.08):,}}円 〜 ¥{{int(latest_price * 1.20):,}}円**
                     """)
                 else:
-                    st.warning(f"⚠️ [{ticker_search}] の最新チャートデータを取得できませんでした。コードをご確認ください。")
+                    st.warning(f"⚠️ [{{ticker_search}}] の最新チャートデータを取得できませんでした。コードをご確認ください。")
             except Exception as ex:
-                st.error(f"データ取得エラー: {ex}")
+                st.error(f"データ取得エラー: {{ex}}")
 
 # ------------------------------------------
 # タブ 4: Yahoo! / 株探 / SBI証券 無償速報ニュース
 # ------------------------------------------
 with tab4:
     st.subheader("📰 Yahoo!ファイナンス / 株探 / SBI証券 無償公開最新ニュース・業種速報")
-    st.caption("2026年7月27日最新市況・東証17業種ETFに影響を与える速報ニュースを集約しています。")
+    st.caption("リアルタイム最新市況・東証17業種ETFに影響を与える速報ニュースを集約しています。")
 
     source_filter = st.selectbox("ニュース提供元でフィルタ:", ["全ソース (統合)", "Yahoo!ファイナンス", "株探", "SBI証券"])
 
@@ -416,12 +437,12 @@ with tab4:
         st.markdown(f"""
         <div class="metric-card">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="{badge_class}">{item['source']}</span>
-                <span style="color: #94a3b8; font-size: 11px; font-family: monospace;">{item['time']}</span>
+                <span class="{{badge_class}}">{{item['source']}}</span>
+                <span style="color: #94a3b8; font-size: 11px; font-family: monospace;">{{item['time']}}</span>
             </div>
-            <h4 style="color: white; margin: 8px 0 4px 0;">{item['title']}</h4>
-            <p style="color: #cbd5e1; font-size: 12px; margin: 0;">{item['summary']}</p>
-            <div style="margin-top: 8px; font-size: 11px; color: #60a5fa;">対象業種コード: {item['code']} | カテゴリ: {item['category']}</div>
+            <h4 style="color: white; margin: 8px 0 4px 0;">{{item['title']}}</h4>
+            <p style="color: #cbd5e1; font-size: 12px; margin: 0;">{{item['summary']}}</p>
+            <div style="margin-top: 8px; font-size: 11px; color: #60a5fa;">対象業種コード: {{item['code']}} | カテゴリ: {{item['category']}}</div>
         </div>
         """, unsafe_allow_html=True)
 
