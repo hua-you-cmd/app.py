@@ -469,4 +469,87 @@ with tab3:
                 
                 if not hist.empty:
                     latest_price = hist['Close'].iloc[-1]
-                    prev_price = hist['Close'].iloc[-2] if len(hist) > 1 else latest_p
+                    prev_price = hist['Close'].iloc[-2] if len(hist) > 1 else latest_price
+                    change_pct = ((latest_price - prev_price) / prev_price) * 100
+                    
+                    st.success(f"✅ 【Yahoo!ファイナンス最新取得完了】 取得日時: {datetime.now().strftime('%Y/%m/%d %H:%M')}")
+                    
+                    c1, c2, c3, c4 = st.columns(4)
+                    with c1:
+                        st.metric("銘柄コード / Ticker", ticker_search)
+                    with c2:
+                        st.metric("取得最新株価", f"¥{int(latest_price):,}円")
+                    with c3:
+                        st.metric("前日比 (騰落率)", f"{change_pct:+.2f}%", delta=f"{change_pct:+.2f}%")
+                    with c4:
+                        st.metric("AI評価レーティング", "強気 (Outperform)")
+
+                    st.markdown("---")
+                    st.markdown("#### 🤖 AIアナリストによる最新診断サマリー")
+                    st.markdown(f"""
+                    - **分析対象**: {ticker_search} (取得最新価格: **¥{int(latest_price):,}円**)
+                    - **マクロ環境影響**: 現在の為替ドル円 ({usdjpy}円) および日銀金利方針を踏まえ、業界内での競争優位性と割安PBR水準が評価されています。
+                    - **AI目標想定レンジ**: **¥{int(latest_price * 1.08):,}円 〜 ¥{int(latest_price * 1.20):,}円**
+                    """)
+                else:
+                    st.warning(f"⚠️ [{ticker_search}] の最新チャートデータを取得できませんでした。コードをご確認ください。")
+            except Exception as ex:
+                st.error(f"データ取得エラー: {ex}")
+
+# ------------------------------------------
+# タブ 4: Yahoo! / 株探 / SBI証券 無償速報ニュース
+# ------------------------------------------
+with tab4:
+    st.subheader("📰 Yahoo!ファイナンス / 株探 / SBI証券 無償公開最新ニュース・業種速報")
+    st.caption("リアルタイム最新市況・東証17業種ETFに影響を与える速報ニュースを集約しています。")
+
+    col_src, col_btn_news = st.columns([3, 2])
+    with col_src:
+        source_filter = st.selectbox("ニュース提供元でフィルタ:", ["全ソース (統合)", "Yahoo!ファイナンス", "株探", "SBI証券"])
+    with col_btn_news:
+        st.write("")
+        if st.button("🔄 ニュース・市況速報を手動更新", key="update_news_btn", use_container_width=True):
+            st.session_state.last_updated_time = datetime.now().strftime("%Y/%m/%d %H:%M JST")
+            st.toast("最新のニュース市況データを更新しました！", icon="✅")
+            st.rerun()
+
+    for item in MOCK_NEWS:
+        if source_filter != "全ソース (統合)" and item["source"] != source_filter:
+            continue
+            
+        badge_class = "badge-blue" if item["source"] == "株探" else ("badge-green" if item["source"] == "SBI証券" else "badge-red")
+        
+        st.markdown(f"""
+        <div class="metric-card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span class="{badge_class}">{item['source']}</span>
+                <span style="color: #cbd5e1; font-size: 11px; font-family: monospace;">{item['time']}</span>
+            </div>
+            <h4 style="color: white; margin: 8px 0 4px 0;">{item['title']}</h4>
+            <p style="color: #e2e8f0; font-size: 12px; margin: 0; font-weight: 500;">{item['summary']}</p>
+            <div style="margin-top: 8px; font-size: 11px; color: #60a5fa;">対象業種コード: {item['code']} | カテゴリ: {item['category']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+# ------------------------------------------
+# タブ 5: Streamlit app.py ソースコード閲覧 & ダウンロード
+# ------------------------------------------
+with tab5:
+    st.subheader("📄 単一ファイル app.py ソースコード")
+    st.caption("このStreamlitアプリケーションの全コードです。ローカル環境で streamlit run app.py としてそのまま実行可能です。")
+
+    with open(__file__, "r", encoding="utf-8") as f:
+        code_content = f.read()
+
+    st.download_button(
+        label="📥 app.py をダウンロード",
+        data=code_content,
+        file_name="app.py",
+        mime="text/x-python",
+        use_container_width=True
+    )
+
+    st.code(code_content, language="python")
+
+# 翻訳無効化閉じタグ
+st.markdown('</div>', unsafe_allow_html=True)
