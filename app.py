@@ -261,7 +261,8 @@ def generate_gemini_batch_prediction(forecast_horizon, usdjpy, boj_rate, sector_
         ret_1m = row.get("1M騰落(%)", 0.0)
         ret_1d = row.get("1D騰落(%)", 0.0)
         trend_status = "上昇傾向" if ret_1w > 0 and ret_1m > 0 else ("下落・調整傾向" if ret_1w < 0 or ret_1m < 0 else "揉み合い")
-        trend_data_text += f"- [{row.get('コード', '')}] {row.get('業種名', '')}: 現在株価 ¥{row.get('現在株価(円)', 0)}円, 1D: {ret_1d}%, 1W推移: {ret_1w}%, 1M推移: {ret_1m}% (トレンド判定: {trend_status})\n"
+        item_text = f"- [{row.get('コード', '')}] {row.get('業種名', '')}: 現在株価 ¥{row.get('現在株価(円)', 0)}円, 1D: {ret_1d}%, 1W推移: {ret_1w}%, 1M推移: {ret_1m}% (トレンド判定: {trend_status})"
+        trend_data_text += item_text + "\n"
 
     try:
         api_key = os.environ.get("GEMINI_API_KEY")
@@ -462,4 +463,4 @@ with tab1:
     with col_period:
         period_choice = st.selectbox("表示期間を選択:", ["1D騰落(%)", "1W騰落(%)", "1M騰落(%)", "3M騰落(%)", "6M騰落(%)", "1Y騰落(%)"], index=0)
     with col_sort:
-        sort_order = st.radio("並び順:", ["値
+      
