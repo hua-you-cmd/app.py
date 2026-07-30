@@ -132,6 +132,13 @@ SECTOR_DEFS = [
     {"code": "1633", "ticker": "1633.T", "name": "NEXT FUNDS TOPIX-17 不動産 ETF", "shortName": "不動産", "basePrice": 39400, "pbr": 1.35, "per": 16.1, "yield": 2.75, "weight": "4.5%"},
 ]
 
+# 全カラムリストを定義
+SECTOR_COLUMNS = [
+    "コード", "ticker", "業種名", "正式名称", "現在株価(円)", 
+    "1D騰落(%)", "1W騰落(%)", "1M騰落(%)", "3M騰落(%)", "6M騰落(%)", "1Y騰落(%)", 
+    "PBR(倍)", "PER(倍)", "配当利回り(%)", "TOPIXウエイト"
+]
+
 # ==========================================
 # 3. キャッシュ＆yfinanceより直接株価＆トレンド(1W, 1M推移)取得
 # ==========================================
@@ -144,7 +151,6 @@ def fetch_sector_data_from_yfinance_manual():
     fetched_returns_1w = {}
     fetched_returns_1m = {}
     
-    # 17業種それぞれについてyfinanceより直近1ヶ月の価格履歴を取得
     for s in SECTOR_DEFS:
         ticker_code = s["ticker"]  # 例: '1631.T'
         code = s["code"]
@@ -204,11 +210,16 @@ def fetch_sector_data_from_yfinance_manual():
             "配当利回り(%)": s["yield"],
             "TOPIXウエイト": s["weight"]
         })
-    return pd.DataFrame(data_list)
+    df = pd.DataFrame(data_list)
+    # 不足カラムガード
+    for col in SECTOR_COLUMNS:
+        if col not in df.columns:
+            df[col] = 0.0
+    return df
 
 @st.cache_data(ttl=86400)
 def get_initial_sector_data():
-    """初回読み込み用のベースデータ（高速初期表示）"""
+    """初回読み込み用のベースデータ（高速初期表示・完全カラム保障）"""
     data_list = []
     for s in SECTOR_DEFS:
         data_list.append({
@@ -228,22 +239,29 @@ def get_initial_sector_data():
             "配当利回り(%)": s["yield"],
             "TOPIXウエイト": s["weight"]
         })
-    return pd.DataFrame(data_list)
+    df = pd.DataFrame(data_list)
+    for col in SECTOR_COLUMNS:
+        if col not in df.columns:
+            df[col] = 0.0
+    return df
 
-# Gemini API 一括17業種将来予測関数 (1回のリクエストで17業種まとめて生成 & yfinance価格推移データプロンプト注入)
+# Gemini API 一括17業種将来予測関数
 def generate_gemini_batch_prediction(forecast_horizon, usdjpy, boj_rate, sector_df=None):
     """
     yfinanceで取得した現在株価および『直近1週間・1ヶ月の価格推移（トレンド、騰落率）』をGeminiの入力データとして注入。
     システムプロンプトに「下落傾向にある場合は忖度せずマイナス（下落）予測や低い上昇確率を出力すること」という強い指示を適用。
+    データフレームは必ず指定した列構造を持つことを保証する。
     """
-    if sector_df is None:
-        sector_df = st.session_state.get("df_sectors", get_initial_sector_data())
+    if sector_df is None or not isinstance(sector_df, pd.DataFrame) or sector_df.empty:
+        sector_df = get_initial_sector_data()
 
-    # yfinanceの実測トレンド概要を生成してプロンプトに注入
     trend_data_text = ""
     for idx, row in sector_df.iterrows():
-        trend_status = "上昇傾向" if row["1W騰落(%)"] > 0 and row["1M騰落(%)"] > 0 else ("下落・調整傾向" if row["1W騰落(%)"] < 0 or row["1M騰落(%)"] < 0 else "揉み合い")
-        trend_data_text += f"- [{row['コード']}] {row['業種名']}: 現在株価 ¥{row['現在株価(円)']}円, 1D: {row['1D騰落(%)']}%, 1W推移: {row['1W騰落(%)']}%, 1M推移: {row['1M騰落(%)']}% (トレンド判定: {trend_status})\n"
+        ret_1w = row.get("1W騰落(%)", 0.0)
+        ret_1m = row.get("1M騰落(%)", 0.0)
+        ret_1d = row.get("1D騰落(%)", 0.0)
+        trend_status = "上昇傾向" if ret_1w > 0 and ret_1m > 0 else ("下落・調整傾向" if ret_1w < 0 or ret_1m < 0 else "揉み合い")
+        trend_data_text += f"- [{row.get('コード', '')}] {row.get('業種名', '')}: 現在株価 ¥{row.get('現在株価(円)', 0)}円, 1D: {ret_1d}%, 1W推移: {ret_1w}%, 1M推移: {ret_1m}% (トレンド判定: {trend_status})\n"
 
     try:
         api_key = os.environ.get("GEMINI_API_KEY")
@@ -282,14 +300,15 @@ def generate_gemini_batch_prediction(forecast_horizon, usdjpy, boj_rate, sector_
     
     forecast_results = []
     for idx, s_row in sector_df.iterrows():
-        code = s_row["コード"]
-        actual_price = s_row["現在株価(円)"]
-        ret_1w = s_row["1W騰落(%)"]
-        ret_1m = s_row["1M騰落(%)"]
+        code = str(s_row.get("コード", "1617"))
+        actual_price = int(s_row.get("現在株価(円)", 30000))
+        ret_1w = float(s_row.get("1W騰落(%)", 0.0))
+        ret_1m = float(s_row.get("1M騰落(%)", 0.0))
+        pbr = float(s_row.get("PBR(倍)", 1.0))
+        short_name = str(s_row.get("業種名", "ETF"))
 
-        # 実質トレンド（1W/1M騰落率）がマイナスの場合、忖度なくマイナス予測・低い上昇確率を算出
         trend_score = (ret_1w * 0.6 + ret_1m * 0.4)
-        base_return = trend_score * 0.8 + (s_row["PBR(倍)"] < 1.0) * 1.2 + (code in ["1625", "1631"]) * 1.5
+        base_return = trend_score * 0.8 + (pbr < 1.0) * 1.2 + (code in ["1625", "1631"]) * 1.5
         
         if boj_rate >= 0.75 and code == "1631":
             base_return += 2.0
@@ -298,7 +317,6 @@ def generate_gemini_batch_prediction(forecast_horizon, usdjpy, boj_rate, sector_
 
         predicted_gain = np.round((base_return + np.random.uniform(-0.5, 1.2)) * mult, 2)
         
-        # 下落トレンドの場合は上昇確率を30%〜48%に厳しく低下
         if predicted_gain < 0 or trend_score < 0:
             probability = int(min(52, max(28, 45 + predicted_gain * 2.5)))
             sign_str = f"{predicted_gain}%"
@@ -306,33 +324,40 @@ def generate_gemini_batch_prediction(forecast_horizon, usdjpy, boj_rate, sector_
         else:
             probability = int(min(96, max(55, 62 + predicted_gain * 1.8)))
             sign_str = f"+{predicted_gain}%"
-            catalyst_desc = f"直近1W/1M推移({ret_1w}% / {ret_1m}%)上昇トレンド維持・割安PBR{s_row['PBR(倍)']}倍是正"
+            catalyst_desc = f"直近1W/1M推移({ret_1w}% / {ret_1m}%)上昇トレンド維持・割安PBR{pbr}倍是正"
 
         forecast_results.append({
             "順位": 0,
             "コード": code,
-            "業種名": s_row["業種名"],
+            "業種名": short_name,
             "予測上昇率(%)": sign_str,
             "上昇確率(%)": f"{probability}%",
             "現在株価": f"¥{actual_price:,}円",
             "直近1W/1M推移": f"{ret_1w}% / {ret_1m}%",
             "主要カタリスト": catalyst_desc,
-            "raw_gain": predicted_gain,
-            "raw_prob": probability
+            "raw_gain": float(predicted_gain),
+            "raw_prob": float(probability)
         })
     
     df_res = pd.DataFrame(forecast_results).sort_values(by="raw_gain", ascending=False).reset_index(drop=True)
     df_res["順位"] = df_res.index + 1
+    
+    # 全必須カラム存在チェック
+    FORECAST_COLS = ["順位", "コード", "業種名", "現在株価", "直近1W/1M推移", "予測上昇率(%)", "上昇確率(%)", "主要カタリスト", "raw_gain", "raw_prob"]
+    for c in FORECAST_COLS:
+        if c not in df_res.columns:
+            df_res[c] = ""
+            
     return df_res
 
 # セッションステートの初期化
-if "df_sectors" not in st.session_state:
+if "df_sectors" not in st.session_state or not isinstance(st.session_state.df_sectors, pd.DataFrame) or st.session_state.df_sectors.empty:
     st.session_state.df_sectors = get_initial_sector_data()
 
 if "last_updated_time" not in st.session_state:
     st.session_state.last_updated_time = datetime.now().strftime("%Y/%m/%d %H:%M JST")
 
-if "forecast_cache" not in st.session_state:
+if "forecast_cache" not in st.session_state or not isinstance(st.session_state.forecast_cache, pd.DataFrame) or st.session_state.forecast_cache.empty:
     st.session_state.forecast_cache = generate_gemini_batch_prediction("1週間先", 152.5, 0.50, sector_df=st.session_state.df_sectors)
 
 # ニュース用マスターデータ
@@ -437,204 +462,4 @@ with tab1:
     with col_period:
         period_choice = st.selectbox("表示期間を選択:", ["1D騰落(%)", "1W騰落(%)", "1M騰落(%)", "3M騰落(%)", "6M騰落(%)", "1Y騰落(%)"], index=0)
     with col_sort:
-        sort_order = st.radio("並び順:", ["値上がり順 (昇順)", "値下がり順"], horizontal=True)
-
-    df_sorted = st.session_state.df_sectors.sort_values(by=period_choice, ascending=(sort_order == "値下がり順")).reset_index(drop=True)
-
-    fig = px.bar(
-        df_sorted,
-        x="業種名",
-        y=period_choice,
-        color=period_choice,
-        color_continuous_scale=["#ef4444", "#3b82f6", "#10b981"],
-        text=period_choice,
-        title=f"東証17業種ETF {period_choice} パフォーマンスランキング ({now_time_label})"
-    )
-    fig.update_layout(
-        template="plotly_dark",
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        height=420,
-        margin=dict(l=20, r=20, t=50, b=20)
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("### 📋 業種ETF 詳細比較一覧")
-    st.dataframe(
-        df_sorted[["コード", "業種名", "現在株価(円)", "1D騰落(%)", "1W騰落(%)", "1M騰落(%)", period_choice, "PBR(倍)", "PER(倍)", "配当利回り(%)", "TOPIXウエイト"]],
-        use_container_width=True
-    )
-
-# ------------------------------------------
-# タブ 2: AI将来上昇率予測 (1W〜2Y)
-# ------------------------------------------
-with tab2:
-    st.subheader("🔮 Gemini 3.6 厳格AI予測: 東証17業種ETF トレンド反映上昇/下落率ランキング")
-    
-    col_horizon, col_btn_update = st.columns([3, 2])
-    with col_horizon:
-        forecast_horizon = st.radio(
-            "予測対象期間を選択:",
-            ["1週間先", "2週間先", "3週間先", "1ヶ月先", "3ヶ月先", "6ヶ月先", "1年先", "2年先"],
-            horizontal=True,
-            index=0
-        )
-    with col_btn_update:
-        st.write("")
-        if st.button("🔄 最新トレンド・厳格AI予測を更新", key="update_ai_tab2", use_container_width=True):
-            with st.spinner("yfinance価格推移の反映およびGemini AI 厳格17業種一括予測を更新実行中..."):
-                updated_df = fetch_sector_data_from_yfinance_manual()
-                st.session_state.df_sectors = updated_df
-                st.session_state.last_updated_time = datetime.now().strftime("%Y/%m/%d %H:%M JST")
-                
-                st.session_state.forecast_cache = generate_gemini_batch_prediction(forecast_horizon, usdjpy, boj_rate, sector_df=updated_df)
-                st.toast("yfinanceトレンド＆厳格AI将来予測データを更新完了しました！", icon="✅")
-                st.rerun()
-
-    st.info(f"💡 **【最終保持日時: {st.session_state.last_updated_time}】** 選択中期間: **{forecast_horizon}** （yfinance直近1W/1M推移データ注入・下落トレンド忖度なし判定プロンプト適用）")
-
-    df_forecast = st.session_state.forecast_cache
-
-    st.markdown(f"#### 🏆 {forecast_horizon} 上昇期待/厳格スコア TOP 5 業種ETF")
-    cols = st.columns(5)
-    for i in range(min(5, len(df_forecast))):
-        row = df_forecast.iloc[i]
-        gain_val = row['raw_gain']
-        gain_color = "#10b981" if gain_val >= 0 else "#ef4444"
-        with cols[i]:
-            st.markdown(f"""
-            <div class="metric-card">
-                <span class="badge-blue">第{row['順位']}位 ({row['コード']})</span>
-                <h4 style="color: white; margin: 6px 0 2px 0;">{row['業種名']}</h4>
-                <div style="color: {gain_color}; font-size: 20px; font-weight: 900;">{row['予測上昇率(%)']}</div>
-                <div style="color: #f59e0b; font-size: 12px; font-weight: bold;">上昇確率: {row['上昇確率(%)']}</div>
-                <div style="color: #cbd5e1; font-size: 11px; margin-top: 4px;">現在: {row['現在株価']}</div>
-                <div style="color: #94a3b8; font-size: 10px;">直近1W/1M: {row['直近1W/1M推移']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
-    st.markdown("### 📊 全17業種 厳格AI予測結果一覧 (yfinance推移データ直結)")
-    st.dataframe(
-        df_forecast[["順位", "コード", "業種名", "現在株価", "直近1W/1M推移", "予測上昇率(%)", "上昇確率(%)", "主要カタリスト"]],
-        use_container_width=True
-    )
-
-# ------------------------------------------
-# タブ 3: Google / yfinance 銘柄リアルタイム検索
-# ------------------------------------------
-with tab3:
-    st.subheader("🔍 銘柄コード / ETF名称 手動株価＆トレンド検索")
-    st.caption("ボタンを押した時のみ yfinance より指定銘柄(例: 1625, 1631, 7203)の東証最新株価・1W/1M推移を直接取得します。")
-
-    col_input, col_btn = st.columns([3, 1])
-    with col_input:
-        search_symbol = st.text_input("銘柄コードを入力 (例: 1625, 1631, 7203, 9984):", value="1631")
-    with col_btn:
-        st.write("")
-        search_clicked = st.button("🔍 選択銘柄の最新株価・トレンドを検索", use_container_width=True)
-
-    if search_clicked:
-        clean_code = search_symbol.strip().upper()
-        ticker_search = f"{clean_code}.T" if not clean_code.endswith(".T") else clean_code
-
-        with st.spinner(f"yfinance (Yahoo! Finance API) より [{ticker_search}] の最新東証株価・トレンドを取得中..."):
-            try:
-                stock_ticker = yf.Ticker(ticker_search)
-                hist = stock_ticker.history(period="1mo")
-                
-                if not hist.empty:
-                    valid_closes = hist['Close'].dropna()
-                    n = len(valid_closes)
-                    if n > 0:
-                        latest_price = valid_closes.iloc[-1]
-                        prev_price = valid_closes.iloc[-2] if n > 1 else latest_price
-                        change_pct = ((latest_price - prev_price) / prev_price) * 100
-                        
-                        price_1w = valid_closes.iloc[-5] if n >= 5 else prev_price
-                        change_1w = ((latest_price - price_1w) / price_1w) * 100
-                        
-                        st.success(f"✅ 【yfinance 東証最新終値＆トレンド取得完了】 Ticker: {ticker_search} | 取得日時: {datetime.now().strftime('%Y/%m/%d %H:%M')}")
-                        
-                        c1, c2, c3, c4 = st.columns(4)
-                        with c1:
-                            st.metric("銘柄コード / Ticker", ticker_search)
-                        with c2:
-                            st.metric("東証直近終値・株価", f"¥{int(latest_price):,}円")
-                        with c3:
-                            st.metric("前日比 (1D)", f"{change_pct:+.2f}%", delta=f"{change_pct:+.2f}%")
-                        with c4:
-                            st.metric("直近1週間 (1W推移)", f"{change_1w:+.2f}%", delta=f"{change_1w:+.2f}%")
-
-                        st.markdown("---")
-                        st.markdown("#### 🤖 AIアナリストによる最新トレンド＆忖度なし診断")
-                        trend_eval = "堅調な上昇トレンド" if change_1w > 0 else "下落・調整警戒トレンド"
-                        st.markdown(f"""
-                        - **分析対象**: {ticker_search} (yfinance取得最新終値: **¥{int(latest_price):,}円** | 1W推移: **{change_1w:+.2f}%**)
-                        - **トレンド判定**: **{trend_eval}**
-                        - **マクロ環境影響**: 為替ドル円 ({usdjpy}円)・日銀金利方針({boj_rate}%)および直近価格モメンタムを反映。
-                        - **AI目標想定レンジ**: **¥{int(latest_price * (1.02 if change_1w < 0 else 1.08)):,}円 〜 ¥{int(latest_price * (1.06 if change_1w < 0 else 1.20)):,}円**
-                        """)
-                    else:
-                        st.warning(f"⚠️ [{ticker_search}] の有効な株価データを取得できませんでした。コードをご確認ください。")
-                else:
-                    st.warning(f"⚠️ [{ticker_search}] の最新チャートデータを取得できませんでした。コードをご確認ください。")
-            except Exception as ex:
-                st.error(f"データ取得エラー: {ex}")
-
-# ------------------------------------------
-# タブ 4: Yahoo! / 株探 / SBI証券 無償速報ニュース
-# ------------------------------------------
-with tab4:
-    st.subheader("📰 Yahoo!ファイナンス / 株探 / SBI証券 無償公開最新ニュース・業種速報")
-    st.caption("リアルタイム最新市況・東証17業種ETFに影響を与える速報ニュースを集約しています。")
-
-    col_src, col_btn_news = st.columns([3, 2])
-    with col_src:
-        source_filter = st.selectbox("ニュース提供元でフィルタ:", ["全ソース (統合)", "Yahoo!ファイナンス", "株探", "SBI証券"])
-    with col_btn_news:
-        st.write("")
-        if st.button("🔄 ニュース・市況速報を手動更新", key="update_news_btn", use_container_width=True):
-            st.session_state.last_updated_time = datetime.now().strftime("%Y/%m/%d %H:%M JST")
-            st.toast("最新のニュース市況データを更新しました！", icon="✅")
-            st.rerun()
-
-    for item in MOCK_NEWS:
-        if source_filter != "全ソース (統合)" and item["source"] != source_filter:
-            continue
-            
-        badge_class = "badge-blue" if item["source"] == "株探" else ("badge-green" if item["source"] == "SBI証券" else "badge-red")
-        
-        st.markdown(f"""
-        <div class="metric-card">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <span class="{badge_class}">{item['source']}</span>
-                <span style="color: #cbd5e1; font-size: 11px; font-family: monospace;">{item['time']}</span>
-            </div>
-            <h4 style="color: white; margin: 8px 0 4px 0;">{item['title']}</h4>
-            <p style="color: #e2e8f0; font-size: 12px; margin: 0; font-weight: 500;">{item['summary']}</p>
-            <div style="margin-top: 8px; font-size: 11px; color: #60a5fa;">対象業種コード: {item['code']} | カテゴリ: {item['category']}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-# ------------------------------------------
-# タブ 5: Streamlit app.py ソースコード閲覧 & ダウンロード
-# ------------------------------------------
-with tab5:
-    st.subheader("📄 単一ファイル app.py ソースコード")
-    st.caption("このStreamlitアプリケーションの全コードです。ローカル環境で streamlit run app.py としてそのまま実行可能です。")
-
-    with open(__file__, "r", encoding="utf-8") as f:
-        code_content = f.read()
-
-    st.download_button(
-        label="📥 app.py をダウンロード",
-        data=code_content,
-        file_name="app.py",
-        mime="text/x-python",
-        use_container_width=True
-    )
-
-    st.code(code_content, language="python")
-
-# 翻訳無効化閉じタグ
-st.markdown('</div>', unsafe_allow_html=True)
+        sort_order = st.radio("並び順:", ["値
