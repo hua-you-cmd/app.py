@@ -34,14 +34,20 @@ if not st.session_state.authenticated:
             st.error("パスワードが正しくありません (ヒント: 2356)")
     st.stop()
 
-# カスタムCSSスタイリング
+# カスタムCSSスタイリング & Google翻訳（自動翻訳）による f-string 変数崩れ防止設定
 st.markdown("""
+<html lang="ja" class="notranslate">
+<meta name="google" content="notranslate">
 <style>
     /* 全体ダーク背景とフォント設定 */
-    .stApp {
+    .stApp, html, body {
         background-color: #0b0f19;
         color: #f1f5f9;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    
+    .notranslate {
+        translate: no;
     }
     
     /* カードコンテナ */
