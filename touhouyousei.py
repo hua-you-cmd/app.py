@@ -854,7 +854,10 @@ if page == "📊 総合ダッシュボード & 五行診断":
             st.session_state.metal = (year + month + day) % 65 + 35
             st.session_state.water = (day * 11) % 60 + 40
             st.success("生年月日からの五行バランスを更新しました！")
-            st.rerun()
+            if hasattr(st, "rerun"):
+                st.rerun()
+            elif hasattr(st, "experimental_rerun"):
+                st.experimental_rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
     with col2:
