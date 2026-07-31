@@ -686,7 +686,8 @@ export const STREAMLIT_REQUIREMENTS = `streamlit>=1.30.0
 pandas>=2.0.0
 plotly>=5.18.0`;
 
-export const STREAMLIT_APP_PY = `import streamlit as st
+export const STREAMLIT_APP_PY = `# -*- coding: utf-8 -*-
+import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import datetime
