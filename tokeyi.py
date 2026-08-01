@@ -679,7 +679,6 @@ st.info(f"🕒 最終データ更新日時: **{last_time}** (Yahoo Finance リ�
 
 
 # 8. ハイライト KPI カード
-if df_res is not None and len(df_res) > 0:
 
     
 if df_res is not None and len(df_res) > 0:
