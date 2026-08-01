@@ -201,12 +201,18 @@ def train_and_predict_probability(df: pd.DataFrame, target_pips: float = 250.0, 
     rf_long.fit(X, y_long)
 
     latest_features = X.iloc[[-1]]
-    long_prob_raw = rf_long.predict_proba(latest_features)[0][1]
 
+    # 買い確率の安全取得（IndexError防止）
+    long_probs = rf_long.predict_proba(latest_features)[0]
+    long_prob_raw = long_probs[1] if len(long_probs) > 1 else (1.0 if y_long.iloc[-1] == 1 else 0.0)
+
+    # 売り確率の安全取得（IndexError防止）
     y_short = valid_df["Short_Target_Reached"]
     rf_short = RandomForestClassifier(n_estimators=100, max_depth=5, random_state=42)
     rf_short.fit(X, y_short)
-    short_prob_raw = rf_short.predict_proba(latest_features)[0][1]
+
+    short_probs = rf_short.predict_proba(latest_features)[0]
+    short_prob_raw = short_probs[1] if len(short_probs) > 1 else (1.0 if y_short.iloc[-1] == 1 else 0.0)
 
     long_prob = round(float(long_prob_raw * 100), 1)
     short_prob = round(float(short_prob_raw * 100), 1)
