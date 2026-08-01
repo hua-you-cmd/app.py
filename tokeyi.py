@@ -50,6 +50,65 @@ SBI_PAIRS = [
     {"symbol": "GBPUSD=X", "ticker": "GBPUSD=X", "name": "GBP/USD", "disp": "ポンド/米ドル", "type": "USD", "pip_scale": 0.0001, "target_pips": 250},
     {"symbol": "EURUSD=X", "ticker": "EURUSD=X", "name": "EUR/USD", "disp": "ユーロ/米ドル", "type": "USD", "pip_scale": 0.0001, "target_pips": 250}
 ]
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+def build_signal_email_html(pair_name: str, action: str, price: float, prob: float, rsi: float) -> str:
+    """シグナル検知時の通知メールHTMLを作成"""
+    color = "#10B981" if action == "BUY" else "#EF4444"
+    action_label = "【買いシグナル】" if action == "BUY" else "【売りシグナル】"
+    
+    html = f"""
+    <html>
+      <body style="font-family: Arial, sans-serif; background-color: #f4f4f7; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 8px;">
+          <h2 style="color: {color}; margin-top: 0;">{action_label} {pair_name}</h2>
+          <p style="font-size: 16px; color: #333333;">条件を満たすシグナルが検知されました。</p>
+          <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+            <tr>
+              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">通貨ペア</td>
+              <td style="padding: 8px; border-bottom: 1px solid #ddd;">{pair_name}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">現在価格</td>
+              <td style="padding: 8px; border-bottom: 1px solid #ddd;">{price}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">予測確率</td>
+              <td style="padding: 8px; border-bottom: 1px solid #ddd;">{prob}%</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">RSI</td>
+              <td style="padding: 8px; border-bottom: 1px solid #ddd;">{rsi}</td>
+            </tr>
+          </table>
+        </div>
+      </body>
+    </html>
+    """
+    return html
+
+
+def send_smtp_email(smtp_server: str, port: int, sender_email: str, password: str, receiver_email: str, subject: str, html_content: str) -> bool:
+    """SMTPを使用してメールを送信"""
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = sender_email
+        msg["To"] = receiver_email
+
+        part = MIMEText(html_content, "html")
+        msg.attach(part)
+
+        with smtplib.SMTP_SSL(smtp_server, port) as server:
+            server.login(sender_email, password)
+            server.sendmail(sender_email, receiver_email, msg.as_string())
+        return True
+    except Exception as e:
+        print(f"Email send error: {e}")
+        return False
+
 
 GMO_PAIRS = {pair["name"]: pair for pair in SBI_PAIRS}
 TARGET_PAIRS = SBI_PAIRS
@@ -449,7 +508,6 @@ import streamlit as st
 
 # 自作モジュールのインポート
 from model import GMO_PAIRS, analyze_all_gmo_pairs, fetch_forex_data, generate_technical_features
-from notifier import build_signal_email_html, send_smtp_email
 
 # 1. ページ基本設定
 st.set_page_config(
