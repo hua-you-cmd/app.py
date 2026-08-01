@@ -189,7 +189,7 @@ export default function App() {
         className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-850 border border-amber-500/40 text-amber-300 font-bold text-xs sm:text-sm flex items-center gap-2 transition active:scale-95 cursor-pointer shadow-md"
       >
         <ArrowLeft className="w-4 h-4 text-amber-400" />
-        <span>← トップページに戻る</span>
+        <span>トップページに戻る</span>
       </button>
       <span className="text-xs text-stone-400 font-bold">
         現在表示中: <span className="text-stone-200">{title}</span>
