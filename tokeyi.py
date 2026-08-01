@@ -686,19 +686,17 @@ if df_res is not None and len(df_res) > 0:
 
 
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+        # KPI表示（with kpi1, with kpi2, with kpi3 の行頭スペースを揃える）
+    kpi1, kpi2, kpi3 = st.columns(3)
+    
     with kpi1:
-        st.metric(label="🏆 最優先エントリー推奨", value=top_pair["通貨ペア"])
-
-st.metric(label="🏆 最優先エントリー推奨", value=pair_display_name)
-
+        st.metric(label="🏆 最優先エントリー推奨", value=pair_name)
+    
     with kpi2:
-        st.metric(label="🎯 200〜300pips成功確率", value=f"{top_pair['AI成功確率 (%)']}%")
+        st.metric(label="🎯 予測アクション", value=recommend_action)
+    
     with kpi3:
-        st.metric(label="📍 推奨アクション", value=top_pair["推奨タイミング"])
-    with kpi4:
-        st.metric(label="📊 大局トレンド", value=top_pair["大局トレンド"].split("(")[0])
-
-    st.markdown("---")
+        st.metric(label="🔥 予測確率", value=f"{best_prob}%")
 
     # 9. タブUI
     tab1, tab2, tab3, tab4 = st.tabs([
