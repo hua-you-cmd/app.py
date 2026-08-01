@@ -683,8 +683,8 @@ if df_res is not None and len(df_res) > 0:
 
     
 if df_res is not None and len(df_res) > 0:
-    df_res_df = pd.DataFrame(df_res) if isinstance(df_res, list) else df_res
-    top_pair = df_res_df.iloc[0]  # これなら .iloc[0] が使える
+    top_pair = df_res[0]  # .iloc を取って [0] だけにする
+    st.write(f"注目ペア: {top_pair['display_name']}")
 
 
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
