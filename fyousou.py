@@ -1,10 +1,9 @@
-
 # ==========================================
-# FILE: tokeyi.py
+# FILE: fyousou.py
 # ==========================================
 
 """
-GMO / SBI FX クオンツAI予測ダッシュボード (tokeyi.py - 完全独立スタンドアロン版)
+GMO / SBI FX クオンツAI予測ダッシュボード (fyousou.py - 完全独立スタンドアロン版)
 Yahoo Financeから主要10通貨ペアデータをリアルタイム取得し、
 機械学習(RandomForest)とテクニカル指標(SMA, RSI, MACD, ATR, Bollinger)から目標pips到達確率を算出・可視化します。
 【新機能】予測精度トラッカー(Prediction Tracker) & 継続的再学習(Continual Learning)を搭載。
@@ -498,4 +497,4 @@ def analyze_all_gmo_pairs(period: str = "1y", target_pips: float = 250.0, histor
             pred = train_and_predict_probability(
                 df,
                 target_pips=target_pips,
-                pip_scale=
+                pip_scal
