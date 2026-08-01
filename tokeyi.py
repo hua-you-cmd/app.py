@@ -384,32 +384,37 @@ except ImportError:
 # ログ設定
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
-# 1. GMO為替メインレート 10通貨ペアの定義と設定
-# 各通貨ペアのYahoo Financeティッカー、通貨属性、1pipの定義(円ペア:0.01 / ドルペア:0.0001)
-GMO_PAIRS = {
-    "USD/JPY": {"ticker": "USDJPY=X", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},  # 2.5円幅 (250pips)
-    "EUR/JPY": {"ticker": "EURJPY=X", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
-    "GBP/JPY": {"ticker": "GBPJPY=X", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
-    "AUD/JPY": {"ticker": "AUDJPY=X", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
-    "NZD/JPY": {"ticker": "NZDJPY=X", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
-    "CAD/JPY": {"ticker": "CADJPY=X", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
-    "CHF/JPY": {"ticker": "CHFJPY=X", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
-    "EUR/USD": {"ticker": "EURUSD=X", "type": "USD", "pip_scale": 0.0001, "target_pips": 250}, # 0.0250ドル幅 (250pips)
-    "GBP/USD": {"ticker": "GBPUSD=X", "type": "USD", "pip_scale": 0.0001, "target_pips": 250},
-    "AUD/USD": {"ticker": "AUDUSD=X", "type": "USD", "pip_scale": 0.0001, "target_pips": 250},
-}
+# 1. SBI / GMO為替メインレート 10通貨ペアの定義と設定
+SBI_PAIRS = [
+    {"symbol": "AUDUSD=X", "ticker": "AUDUSD=X", "name": "AUD/USD", "disp": "豪ドル/米ドル", "type": "USD", "pip_scale": 0.0001, "target_pips": 250},
+    {"symbol": "USDJPY=X", "ticker": "USDJPY=X", "name": "USD/JPY", "disp": "米ドル/円", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
+    {"symbol": "EURJPY=X", "ticker": "EURJPY=X", "name": "EUR/JPY", "disp": "ユーロ/円", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
+    {"symbol": "GBPJPY=X", "ticker": "GBPJPY=X", "name": "GBP/JPY", "disp": "ポンド/円", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
+    {"symbol": "AUDJPY=X", "ticker": "AUDJPY=X", "name": "AUD/JPY", "disp": "豪ドル/円", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
+    {"symbol": "NZDJPY=X", "ticker": "NZDJPY=X", "name": "NZD/JPY", "disp": "NZドル/円", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
+    {"symbol": "CADJPY=X", "ticker": "CADJPY=X", "name": "CAD/JPY", "disp": "カナダドル/円", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
+    {"symbol": "CHFJPY=X", "ticker": "CHFJPY=X", "name": "CHF/JPY", "disp": "スイスフラン/円", "type": "JPY", "pip_scale": 0.01, "target_pips": 250},
+    {"symbol": "GBPUSD=X", "ticker": "GBPUSD=X", "name": "GBP/USD", "disp": "ポンド/米ドル", "type": "USD", "pip_scale": 0.0001, "target_pips": 250},
+    {"symbol": "EURUSD=X", "ticker": "EURUSD=X", "name": "EUR/USD", "disp": "ユーロ/米ドル", "type": "USD", "pip_scale": 0.0001, "target_pips": 250}
+]
+
+# 既存のtokeyi.py / app.pyとの完全な互換性を保つためのエイリアス
+TARGET_PAIRS = SBI_PAIRS
+GMO_PAIRS = {pair["name"]: pair for pair in SBI_PAIRS}
 
 
-def fetch_forex_data(ticker_symbol: str, period: str = "1y", interval: str = "1d") -> pd.DataFrame:
+def fetch_forex_data(symbol: str, period: str = "1y", interval: str = "1d") -> pd.DataFrame:
     """
-    Yahoo Financeから指定した通貨ペアのリアルタイム・ヒストリカル価格データを100%取得します。
+    Yahoo Financeから指定した通貨ペアのリアルタイム・ヒストリカル価格データを取得します。
     標準ライブラリ(urllib)によるYahoo Finance REST API直接取得と、yfinanceライブラリのハイブリッド型。
 
-    :param ticker_symbol: Yahoo Financeティッカー (例: 'USDJPY=X')
-    :param period: 取得期間 ('1y', '2y')
+    :param symbol: Yahoo Financeティッカー (例: 'USDJPY=X')
+    :param period: 取得期間 ('1mo', '1y', '2y')
     :param interval: 時間軸 ('1d', '1h')
     :return: OHLCVデータのPandas DataFrame
     """
+    ticker_symbol = symbol
+
     # 方法1: Yahoo Finance Query v8 API 直接取得 (最も確実)
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(ticker_symbol)}?range={period}&interval={interval}"
@@ -460,7 +465,8 @@ def fetch_forex_data(ticker_symbol: str, period: str = "1y", interval: str = "1d
     if YFINANCE_AVAILABLE:
         try:
             logging.info(f"Downloading data for ticker via yfinance: {ticker_symbol}")
-            df = yf.download(ticker_symbol, period=period, interval=interval, progress=False)
+            ticker_obj = yf.Ticker(ticker_symbol)
+            df = ticker_obj.history(period=period, interval=interval)
 
             if not df.empty:
                 if isinstance(df.columns, pd.MultiIndex):
@@ -476,22 +482,11 @@ def fetch_forex_data(ticker_symbol: str, period: str = "1y", interval: str = "1d
 def generate_technical_features(df: pd.DataFrame, pip_scale: float = 0.01) -> pd.DataFrame:
     """
     マクロトレンドおよびモメンタム、ボラティリティの技術指標（特徴量）を生成します。
-
-    :param df: OHLC価格データ
-    :param pip_scale: pips計算用のスケール (JPYペア: 0.01, USDペア: 0.0001)
-    :return: 特徴量が追加されたDataFrame
     """
+    if df.empty:
+        return df
+
     data = df.copy()
 
     # 1. 移動平均線 (SMA)
-    data["SMA_20"] = data["Close"].rolling(window=20).mean()
-    data["SMA_50"] = data["Close"].rolling(window=50).mean()
-    data["SMA_200"] = data["Close"].rolling(window=200).mean()
-
-    # 2. 指数平滑移動平均線 (EMA)
-    data["EMA_12"] = data["Close"].ewm(span=12, adjust=False).mean()
-    data["EMA_26"] = data["Close"].ewm(span=26, adjust=False).mean()
-
-    # 3. MACD (12, 26, 9)
-    data["MACD"] = data["EMA_12"] - data["EMA_26"]
-    data["MACD_Signal"] = data["MACD"].ewm(span=9, adjust=False).m
+    data["SMA_5"] = data["Clos
