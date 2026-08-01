@@ -695,7 +695,7 @@ import random
 
 # Page configuration
 st.set_page_config(
-    page_title="東洋養生ナビ - 黄帝内経 × 傷寒論",
+    page_title="東洋養生ナビ - 黄帝内経 x 傷寒論",
     page_icon="🌿",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -783,7 +783,7 @@ if "water" not in st.session_state:
     st.session_state.water = 55
 
 if "shanghan_type" not in st.session_state:
-    st.session_state.shanghan_type = "太陽病（たいようびょう）"
+    st.session_state.shanghan_type = "太陽病 (たいようびょう)"
 
 if "fortune" not in st.session_state:
     st.session_state.fortune = None
@@ -797,9 +797,9 @@ st.markdown(
     <div class="main-header">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
             <div>
-                <span class="badge-amber">東洋医学 × 現代食養生</span>
+                <span class="badge-amber">東洋医学 x 現代食養生</span>
                 <h1 class="header-title">🌿 東洋養生ナビ (Streamlit版)</h1>
-                <p class="header-subtitle">黄帝内経（子午流注） & 傷寒論 六病体質診断 ─ 無薬・食養生・生活習慣アドバイザー</p>
+                <p class="header-subtitle">黄帝内経 (子午流注) & 傷寒論 六病体質診断 --- 無薬・食養生・生活習慣アドバイザー</p>
             </div>
             <div>
                 <span class="badge-emerald">Level 2 養生実践者 (XP: {} / 300)</span>
@@ -817,7 +817,7 @@ page = st.sidebar.radio(
     [
         "📊 総合ダッシュボード & 五行診断",
         "🩺 傷寒論 体質診断アンケート",
-        "⏰ 黄帝内経 子午流注（24時間時計）",
+        "⏰ 黄帝内経 子午流注 (24時間時計)",
         "🥠 デイリーおみくじ & 養生クエスト",
         "📋 GitHub用 Python (Streamlit) 全コード",
     ],
@@ -846,6 +846,7 @@ if page == "📊 総合ダッシュボード & 五行診断":
         st.markdown("#### 🎂 生年月日による自動判定")
         birth_date = st.date_input("生年月日を選択", datetime.date(1995, 5, 15))
         if st.button("生年月日から五行を算出"):
+            # Simple algorithmic element mapping
             year = birth_date.year
             month = birth_date.month
             day = birth_date.day
@@ -952,7 +953,7 @@ if page == "📊 総合ダッシュボード & 五行診断":
 # Page 2: 傷寒論 体質診断アンケート
 # ------------------------------------------------------------------
 elif page == "🩺 傷寒論 体質診断アンケート":
-    st.subheader("🩺 傷寒論（しょうかんろん）六病 体質診断")
+    st.subheader("🩺 傷寒論 (しょうかんろん) 六病 体質診断")
     st.write("以下の質問に回答すると、あなたに最適な傷寒論タイプと無薬食養生アドバイスを出力します。")
 
     with st.form("shanghan_form"):
@@ -960,12 +961,12 @@ elif page == "🩺 傷寒論 体質診断アンケート":
         q1 = st.radio(
             "選択してください",
             [
-                "ゾクゾクする寒気、首や肩のこり、頭痛がある（太陽病）",
-                "高熱、顔の火照り、強い喉の渇き、大汗をかく（陽明病）",
-                "寒気と熱っぽさが交互に来る、口が苦い、脇腹が張る（少陽病）",
-                "お腹が冷えて張る、軟便や下痢をしやすい（太陰病）",
-                "手足が氷のように冷える、体がだるく横になりたい（少陰病）",
-                "上熱下寒（のぼせと足冷え）、激しい頭痛や嘔気（厥陰病）",
+                "ゾクゾクする寒気、首や肩のこり、頭痛がある (太陽病)",
+                "高熱、顔の火照り、強い喉の渇き、大汗をかく (陽明病)",
+                "寒気と熱っぽさが交互に来る、口が苦い、脇腹が張る (少陽病)",
+                "お腹が冷えて張る、軟便や下痢をしやすい (太陰病)",
+                "手足が氷のように冷える、体がだるく横になりたい (少陰病)",
+                "上熱下寒 (のぼせと足冷え)、激しい頭痛や嘔気 (厥陰病)",
             ],
         )
 
@@ -986,68 +987,68 @@ elif page == "🩺 傷寒論 体質診断アンケート":
 
     if submitted:
         if "太陽病" in q1:
-            st.session_state.shanghan_type = "太陽病（たいようびょう）"
+            st.session_state.shanghan_type = "太陽病 (たいようびょう)"
         elif "陽明病" in q1:
-            st.session_state.shanghan_type = "陽明病（ようめいびょう）"
+            st.session_state.shanghan_type = "陽明病 (ようめいびょう)"
         elif "少陽病" in q1:
-            st.session_state.shanghan_type = "少陽病（しょうようびょう）"
+            st.session_state.shanghan_type = "少陽病 (しょうようびょう)"
         elif "太陰病" in q1:
-            st.session_state.shanghan_type = "太陰病（たいいんびょう）"
+            st.session_state.shanghan_type = "太陰病 (たいいんびょう)"
         elif "少陰病" in q1:
-            st.session_state.shanghan_type = "少陰病（しょういんびょう）"
+            st.session_state.shanghan_type = "少陰病 (しょういんびょう)"
         else:
-            st.session_state.shanghan_type = "厥陰病（けついんびょう）"
+            st.session_state.shanghan_type = "厥陰病 (けついんびょう)"
 
     # Display Current Shanghan Prescription
     st.markdown("---")
     st.markdown(f"### 📜 診断結果: <span style='color:#fbbf24;'>{st.session_state.shanghan_type}</span>", unsafe_allow_html=True)
 
     shanghan_data = {
-        "太陽病（たいようびょう）": {
+        "太陽病 (たいようびょう)": {
             "desc": "体表に寒邪が侵入している状態。発汗・発散により表邪を取り除くことが養生の鍵です。",
             "prescription": "生姜湯・ねぎ湯・葛湯",
-            "acupoint": "風池（ふうち）・大椎（だいつい）",
+            "acupoint": "風池 (ふうち)・大椎 (だいつい)",
             "foods": "生姜、ネギ、葛粉、シナモン、紫蘇",
             "habit": "首の後ろと肩を蒸しタオルで温め、じんわり汗をかいて早めに就寝する。",
         },
-        "陽明病（ようめいびょう）": {
-            "desc": "体内（胃腸）に強い熱がこもっている状態。清熱と生津（水分補給）が必要です。",
+        "陽明病 (ようめいびょう)": {
+            "desc": "体内 (胃腸) に強い熱がこもっている状態。清熱と生津 (水分補給) が必要です。",
             "prescription": "夏みかん・緑茶・豆腐養生",
-            "acupoint": "曲池（きょくち）・内庭（ないてい）",
+            "acupoint": "曲池 (きょくち)・内庭 (ないてい)",
             "foods": "大根、豆腐、トマト、きゅうり、緑茶、梨",
             "habit": "油っこい食事を控え、水分補給をこまめに行い胃腸の熱を冷ます。",
         },
-        "少陽病（しょうようびょう）": {
-            "desc": "半表半裏（自律神経・気機）の滞り。和解・理気による気のスムーズな巡りが重要です。",
+        "少陽病 (しょうようびょう)": {
+            "desc": "半表半裏 (自律神経・気機) の滞り。和解・理気による気のスムーズな巡りが重要です。",
             "prescription": "紫蘇レモン・陳皮ハーブ茶",
-            "acupoint": "陽陵泉（ようりょうせん）・太衝（たいしょう）",
+            "acupoint": "陽陵泉 (ようりょうせん)・太衝 (たいしょう)",
             "foods": "陳皮、紫蘇、柑橘類、セロリ、ジャスミン茶",
             "habit": "深呼吸を意識し、香りの良いハーブティーでストレスを緩和する。",
         },
-        "太陰病（たいいんびょう）": {
-            "desc": "脾胃（消化器）が冷えて水分代謝が低下している状態。温中健脾（腹部を温める）が必須。",
+        "太陰病 (たいいんびょう)": {
+            "desc": "脾胃 (消化器) が冷えて水分代謝が低下している状態。温中健脾 (腹部を温める) が必須。",
             "prescription": "人参かぼちゃ粥・乾姜スープ",
-            "acupoint": "足三里（あしさんり）・中脘（ちゅうかん）",
+            "acupoint": "足三里 (あしさんり)・中脘 (ちゅうかん)",
             "foods": "かぼちゃ、サツマイモ、長芋、生姜、ヒノヒカリ粥",
             "habit": "冷たい飲食を徹底的に避け、腹巻きや湯たんぽでお腹を保温する。",
         },
-        "少陰病（しょういんびょう）": {
-            "desc": "心腎の陽気が著しく低下した寒証。温陽補気（根本的な熱の補給）が必要です。",
+        "少陰病 (しょういんびょう)": {
+            "desc": "心腎の陽気が著しく低下した寒証。温陽補気 (根本的な熱の補給) が必要です。",
             "prescription": "黒ごま足湯・シナモン紅茶",
-            "acupoint": "湧泉（ゆうせん）・関元（かんげん）",
-            "foods": "黒ごま、ニラ、羊肉、シナモン、核桃（クルミ）",
+            "acupoint": "湧泉 (ゆうせん)・関元 (かんげん)",
+            "foods": "黒ごま、ニラ、羊肉、シナモン、核桃 (クルミ)",
             "habit": "就寝前に熱めの足湯を行い、22時までに布団に入り体力を回復する。",
         },
-        "厥陰病（けついんびょう）": {
-            "desc": "寒熱が錯雑し、手足の末端が極度に冷える状態。暖肝温経（血行促進と寒気の解消）が重要。",
+        "厥陰病 (けついんびょう)": {
+            "desc": "寒熱が錯雑し、手足の末端が極度に冷える状態。暖肝温経 (血行促進と寒気の解消) が重要。",
             "prescription": "当帰なつめ茶・和漢スパイス湯",
-            "acupoint": "太衝（たいしょう）・三陰交（さんいんこう）",
+            "acupoint": "太衝 (たいしょう)・三陰交 (さんいんこう)",
             "foods": "なつめ、当帰茶、山椒、生姜、黒糖",
             "habit": "手首・足首・首の「三つの首」を温め、軽いストレッチで血流を促す。",
         },
     }
 
-    info = shanghan_data.get(st.session_state.shanghan_type, shanghan_data["太陽病（たいようびょう）"])
+    info = shanghan_data.get(st.session_state.shanghan_type, shanghan_data["太陽病 (たいようびょう)"])
 
     col_res1, col_res2 = st.columns(2)
     with col_res1:
@@ -1069,10 +1070,10 @@ elif page == "🩺 傷寒論 体質診断アンケート":
 
 
 # ------------------------------------------------------------------
-# Page 3: 黄帝内経 子午流注（24時間時計）
+# Page 3: 黄帝内経 子午流注 (24時間時計)
 # ------------------------------------------------------------------
-elif page == "⏰ 黄帝内経 子午流注（24時間時計）":
-    st.subheader("⏰ 黄帝内経 子午流注（しごるちゅう）24時間 臓腑時間")
+elif page == "⏰ 黄帝内経 子午流注 (24時間時計)":
+    st.subheader("⏰ 黄帝内経 子午流注 (しごるちゅう) 24時間 臓腑時間")
     st.write("古代中国医学の知恵「子午流注」に基づき、2時間ごとの経絡・臓腑の活発化時間帯に合わせた生活リズムを提案します。")
 
     now = datetime.datetime.now()
@@ -1086,9 +1087,9 @@ elif page == "⏰ 黄帝内経 子午流注（24時間時計）":
         {"time": "07:00-09:00", "organ": "辰時 (胃経)", "desc": "消化吸収が高まる。温かく栄養豊富な朝食をとる。"},
         {"time": "09:00-11:00", "organ": "巳時 (脾経)", "desc": "食べたものを気血に変える。頭脳労働に最適。"},
         {"time": "11:00-13:00", "organ": "午時 (心経)", "desc": "気血の循環と精神の安定。15-30分の昼寝を推し進める。"},
-        {"time": "13:00-15:00", "organ": "未時 (小腸経)", "desc": "清濁の分別（水分補給）。白湯を多めに飲む。"},
+        {"time": "13:00-15:00", "organ": "未時 (小腸経)", "desc": "清濁の分別 (水分補給)。白湯を多めに飲む。"},
         {"time": "15:00-17:00", "organ": "申時 (膀胱経)", "desc": "代謝活動のピーク。運動や仕事・勉強の効率最大。"},
-        {"time": "17:00-19:00", "organ": "酉時 (腎経)", "desc": "生命力（精）の蓄積。軽い散歩や足湯で腎を補う。"},
+        {"time": "17:00-19:00", "organ": "酉時 (腎経)", "desc": "生命力 (精) の蓄積。軽い散歩や足湯で腎を補う。"},
         {"time": "19:00-21:00", "organ": "戌時 (心包経)", "desc": "心をリラックス。家族や親しい人と穏やかに過ごす。"},
         {"time": "21:00-23:00", "organ": "亥時 (三焦経)", "desc": "全身の気を整え睡眠へ。電子機器を避け就寝準備。"},
     ]
@@ -1096,6 +1097,7 @@ elif page == "⏰ 黄帝内経 子午流注（24時間時計）":
     st.markdown(f"**現在時刻**: {now.strftime('%H:%M')} (日本標準時)")
 
     for c in clock_data:
+        # Check active hour range
         start_h = int(c["time"].split(":")[0])
         end_h = int(c["time"].split("-")[1].split(":")[0])
         
@@ -1171,9 +1173,9 @@ elif page == "🥠 デイリーおみくじ & 養生クエスト":
 # ------------------------------------------------------------------
 elif page == "📋 GitHub用 Python (Streamlit) 全コード":
     st.subheader("📋 Streamlit (Python) ソースコード全取得")
-    st.write("GitHubやStreamlit Cloudにそのままデプロイできる app.py および requirements.txt のコードです。")
+    st.write("GitHubやStreamlit Cloudにそのままデプロイできる \`app.py\` および \`requirements.txt\` のコードです。")
 
-    st.markdown("#### 1. requirements.txt の内容")
+    st.markdown("#### 1. \`requirements.txt\` の内容")
     st.code(
         """streamlit>=1.30.0
 pandas>=2.0.0
@@ -1181,8 +1183,13 @@ plotly>=5.18.0""",
         language="text",
     )
 
-    st.markdown("#### 2. app.py の全ソースコード")
-    st.write("「コード閲覧＆GitHub用コピー」ボタンから直接コピー・保存いただけます。")
+    st.markdown("#### 2. \`app.py\` の全ソースコード")
+    try:
+        with open(__file__, "r", encoding="utf-8") as f:
+            full_code = f.read()
+        st.code(full_code, language="python")
+    except Exception:
+        st.info("💡 アプリ画面上の「コード閲覧＆GitHub用コピー」ボタンより \`app.py\` の全ソースコードをワンクリックでコピー可能です。")
 `;
 
 
