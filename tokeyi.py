@@ -681,7 +681,11 @@ st.info(f"🕒 最終データ更新日時: **{last_time}** (Yahoo Finance リ�
 # 8. ハイライト KPI カード
 if df_res is not None and len(df_res) > 0:
 
-    top_pair = df_res.iloc[0]
+    
+if df_res is not None and len(df_res) > 0:
+    df_res_df = pd.DataFrame(df_res) if isinstance(df_res, list) else df_res
+    top_pair = df_res_df.iloc[0]  # これなら .iloc[0] が使える
+
 
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
     with kpi1:
