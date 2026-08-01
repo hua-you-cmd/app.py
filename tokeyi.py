@@ -688,8 +688,7 @@ if df_res is not None and len(df_res) > 0:
 
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
     with kpi1:
-        # 存在するキー（display_name, pair, name）を順番に探して表示する安全な記述
-pair_display_name = top_pair.get("display_name") or top_pair.get("pair") or top_pair.get("name") or "不明ペア"
+        st.metric(label="🏆 最優先エントリー推奨", value=top_pair["通貨ペア"])
 
 st.metric(label="🏆 最優先エントリー推奨", value=pair_display_name)
 
