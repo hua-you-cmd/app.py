@@ -692,32 +692,7 @@ export default function App() {
  };
 
  
-  const renderBackToHomeHeader = (title: string) => (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-stone-800/80 mb-4">
-      <button
-        onClick={handleGoHome}
-        className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-850 border border-amber-500/40 text-amber-300 font-bold text-xs sm:text-sm flex items-center gap-2 transition active:scale-95 cursor-pointer shadow-md"
-      >
-        <ArrowLeft className="w-4 h-4 text-amber-400" />
-        <span>トップページに戻る</span>
-      </button>
-      <span className="text-xs text-stone-400 font-bold">
-        現在表示中: <span className="text-stone-200">{title}</span>
-      </span>
-    </div>
-  );
 
-  const renderBackToHomeFooter = () => (
-    <div className="pt-6 border-t border-stone-800/80 flex justify-center">
-      <button
-        onClick={handleGoHome}
-        className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-stone-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xl shadow-amber-950/40 transition active:scale-95 cursor-pointer border border-amber-300"
-      >
-        <Home className="w-4.5 h-4.5 text-stone-950" />
-        <span>トップページ（総合ダッシュボード）に戻る</span>
-      </button>
-    </div>
-  );
 
   const activeShanghanProfile = SHANGHAN_PROFILES[shanghanType];
 
@@ -3689,7 +3664,7 @@ export const Header: React.FC<HeaderProps> = ({
               }
             }}
             className="flex items-center gap-3 cursor-pointer group"
-            title="トップページ（総合ダッシュボード）に戻る"
+            title="トップページ"
           >
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-600 via-emerald-600 to-teal-500 p-0.5 shadow-md flex items-center justify-center group-hover:scale-105 transition-transform">
               <div className="w-full h-full bg-stone-950 rounded-[14px] flex items-center justify-center text-amber-400 font-bold text-lg sm:text-xl border border-amber-500/30">
@@ -3751,7 +3726,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onGoHome();
                   }}
                   className="bg-amber-950/80 hover:bg-amber-900/90 text-amber-300 border border-amber-600/50 p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-sm"
-                  title="トップページに戻る"
+                  title="トップページ"
                 >
                   <Home className="w-4 h-4 text-amber-400" />
                   <span className="hidden sm:inline">トップ</span>
