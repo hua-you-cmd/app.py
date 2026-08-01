@@ -509,4 +509,4 @@ if df_res is not None and not df_res.empty:
     with kpi3:
         st.metric(label="📍 推奨アクション", value=top_pair["推奨タイミング"])
     with kpi4:
-        st.metric(label="📊 大局トレンド
+        st.metric(label="📊 大局トレンド)
