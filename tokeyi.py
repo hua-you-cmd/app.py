@@ -680,7 +680,6 @@ st.info(f"🕒 最終データ更新日時: **{last_time}** (Yahoo Finance リ�
 
 # 8. ハイライト KPI カード
 
-    
 if df_res is not None and len(df_res) > 0:
     top_pair = df_res[0] # .iloc を取って [0] だけにする
     st.write(f"注目ペア: {top_pair['display_name']}")
