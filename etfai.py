@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from sklearn.ensemble import RandomForestClassifier
 
 # =============================================================================
-# 1. ページ環境設定 & パスワード認証システム (Passcode: 5689)
+# 1. ページ環境設定 & パスワード認証システム
 # =============================================================================
 st.set_page_config(
     page_title="業種別ETF & 自己進化型AI株価予測ダッシュボード",
@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-PASSWORD = "5689"
+PASSWORD = "238923"
 
 def check_password():
     """セッション状態による簡易ログインパスワードチェック"""
@@ -27,7 +27,7 @@ def check_password():
     if not st.session_state["authenticated"]:
         st.title("🔒 パスワード保護領域")
         st.info("本ダッシュボードにアクセスするにはセキュリティパスワードを入力してください。")
-        input_pass = st.text_input("パスワード (例: 5689)", type="password")
+        input_pass = st.text_input("パスワード", type="password")
         if st.button("ログイン認証"):
             if input_pass == PASSWORD:
                 st.session_state["authenticated"] = True
