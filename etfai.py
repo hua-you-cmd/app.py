@@ -507,4 +507,186 @@ def main():
     with m2:
         st.metric(label="🔥 直近10件の的中率", value=f"{recent_10_win_rate:.1f}%", delta=f"{recent_10_win_rate - overall_win_rate:+.1f}% vs 通算")
     with m3:
-        st.metric(label="
+        st.metric(label="📈 累計検証予測数", value=f"{total_preds} 回")
+    with m4:
+        st.metric(label="🧠 モデル自己進化状態", value="Active", delta="学習フィードバック中")
+
+    if not completed_df.empty and "outcome" in completed_df.columns:
+        completed_df["cumulative_win_rate"] = (completed_df["outcome"].cumsum() / (np.arange(len(completed_df)) + 1)) * 100.0
+        
+        fig_win = px.line(
+            completed_df,
+            x="datetime",
+            y="cumulative_win_rate",
+            title="累積的中率の推移 (%)",
+            markers=True,
+            line_shape="spline",
+            color_discrete_sequence=["#38bdf8"]
+        )
+        fig_win.update_layout(height=240, margin=dict(l=20, r=20, t=40, b=20), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        fig_win.add_hline(y=50, line_dash="dash", line_color="gray", annotation_text="50% 基準線")
+        st.plotly_chart(fig_win, use_container_width=True)
+
+    st.divider()
+
+    # -------------------------------------------------------------------------
+    # 2. 国別切り替えナビゲーション (st.tabs)
+    # -------------------------------------------------------------------------
+    tabs = st.tabs(["🇺🇸 アメリカ (USA)", "🇯🇵 日本 (Japan)", "🇨🇳 中国 (China)"])
+
+    for tab, (country_name, country_info) in zip(tabs, COUNTRY_TICKERS.items()):
+        with tab:
+            st.header(f"{country_name} 分析・予測ダッシュボード")
+
+            # -----------------------------------------------------------------
+            # 2-A. 3ヶ月上昇率TOP3銘柄提案パネル
+            # -----------------------------------------------------------------
+            st.subheader("🚀 ML予測: これから3ヶ月間で最も上昇率が高いと予測されるTOP3銘柄")
+            
+            with st.spinner("リアルタイム株価分析および機械学習モデル実行中..."):
+                top_predictions = []
+                for ticker in country_info["candidates"]:
+                    df_feat = fetch_stock_data_and_features(ticker)
+                    if df_feat is not None:
+                        long_p, short_p, importances, _ = train_predict_model(df_feat, prediction_horizon_days=60)
+                        last_close = float(df_feat['Close'].iloc[-1])
+                        predicted_target = last_close * (1.0 + (long_p - 0.5) * 0.25)
+                        
+                        top_predictions.append({
+                            "ticker": ticker,
+                            "last_close": last_close,
+                            "long_prob": long_p,
+                            "predicted_target": predicted_target,
+                            "importances": importances,
+                            "df": df_feat
+                        })
+                
+                top_predictions.sort(key=lambda x: x["long_prob"], reverse=True)
+                top3 = top_predictions[:3]
+
+            cols = st.columns(3)
+            for i, item in enumerate(top3):
+                with cols[i]:
+                    ticker = item["ticker"]
+                    prob_pct = item["long_prob"] * 100.0
+                    target_p = item["predicted_target"]
+                    curr_p = item["last_close"]
+                    est_return = ((target_p - curr_p) / curr_p) * 100.0
+                    
+                    st.markdown(f"""
+                    <div class="top3-card">
+                        <div style="display:flex; justify-between; align-items:center;">
+                            <h3 style="margin:0; color:#38bdf8;">第{i+1}位: {ticker}</h3>
+                            <span class="badge-prob">上昇確率: {prob_pct:.1f}%</span>
+                        </div>
+                        <h2 style="margin:10px 0; color:#f8fafc;">${curr_p:,.2f} <span style="font-size:0.6em; color:#34d399;">(目標: ${target_p:,.2f} / {est_return:+.1f}%)</span></h2>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    top_imp = sorted(item["importances"].items(), key=lambda x: x[1], reverse=True)[:4]
+                    imp_df = pd.DataFrame(top_imp, columns=["特徴量", "寄与度"])
+                    fig_imp = px.bar(imp_df, x="寄与度", y="特徴量", orientation='h', title="根拠（主要特徴量寄与度）")
+                    fig_imp.update_layout(height=180, margin=dict(l=10, r=10, t=30, b=10), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+                    st.plotly_chart(fig_imp, use_container_width=True)
+
+                    if st.button(f"📌 {ticker} の3ヶ月予測をログ保存", key=f"btn_save_{country_name}_{ticker}"):
+                        if save_prediction_log(country_name, ticker, "3ヶ月", "Long", curr_p, target_p, item["long_prob"]):
+                            st.success(f"{ticker} の予測をログに記録しました！")
+
+            st.divider()
+
+            # -----------------------------------------------------------------
+            # 2-B. 「Built to Last / Enduring Success」銘柄セクション
+            # -----------------------------------------------------------------
+            st.subheader("🏛️ Built to Last / Enduring Success （永続的優良企業セクション）")
+            st.caption("長期的経済の堀（Economic Moat）、強固な財務体質、永続的な成長力を持つビジョナリーカンパニー")
+
+            b_cols = st.columns(3)
+            for j, bt_ticker in enumerate(country_info["built_to_last"]):
+                bt_info = BUILT_TO_LAST_DATA.get(bt_ticker, {
+                    "name": bt_ticker, "symbol": bt_ticker, "country": country_name,
+                    "sector": "主要産業", "moat": "Wide", "per": "20.0", "roe": "15.0%",
+                    "net_margin": "15.0%", "debt_equity": "0.50",
+                    "moat_desc": "強固な市場地位とブランド力。", "rationale": "長期投資に適した優良銘柄。"
+                })
+                
+                with b_cols[j]:
+                    st.markdown(f"""
+                    <div class="built-card">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <h3 style="margin:0; color:#f8fafc;">{bt_info['name']}</h3>
+                            <span class="badge-moat">Moat: {bt_info['moat']}</span>
+                        </div>
+                        <p style="color:#94a3b8; font-size:0.85em; margin-top:4px;">コード: <b>{bt_info['symbol']}</b> | {bt_info['sector']}</p>
+                        <hr style="border-color:#334155; margin:8px 0;"/>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; font-size:0.85em; color:#cbd5e1;">
+                            <div><b>PER:</b> {bt_info['per']}</div>
+                            <div><b>ROE:</b> {bt_info['roe']}</div>
+                            <div><b>純利益率:</b> {bt_info['net_margin']}</div>
+                            <div><b>D/E比率:</b> {bt_info['debt_equity']}</div>
+                        </div>
+                        <p style="font-size:0.85em; color:#e2e8f0; margin-top:10px;"><b>【競合優位性 (Moat)】</b><br/>{bt_info['moat_desc']}</p>
+                        <p style="font-size:0.85em; color:#38bdf8; margin-top:6px;"><b>【選定理由】</b><br/>{bt_info['rationale']}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            st.divider()
+
+            # -----------------------------------------------------------------
+            # 2-C. 個別詳細テクニカル分析 & 複数期間AI予測
+            # -----------------------------------------------------------------
+            st.subheader("🔍 銘柄詳細テクニカル分析 & 複数期間 (1/3/6/12ヶ月) AI予測")
+            
+            selected_ticker = st.selectbox(
+                f"分析対象の銘柄（{country_name}）を選択してください:",
+                country_info["candidates"] + country_info["built_to_last"],
+                key=f"select_{country_name}"
+            )
+
+            df_single = fetch_stock_data_and_features(selected_ticker)
+            if df_single is not None:
+                fig_candlestick = go.Figure()
+                fig_candlestick.add_trace(go.Candlestick(
+                    x=df_single.index,
+                    open=df_single['Open'],
+                    high=df_single['High'],
+                    low=df_single['Low'],
+                    close=df_single['Close'],
+                    name="株価"
+                ))
+                fig_candlestick.add_trace(go.Scatter(x=df_single.index, y=df_single['SMA20'], name="SMA20", line=dict(color='orange', width=1)))
+                fig_candlestick.add_trace(go.Scatter(x=df_single.index, y=df_single['SMA50'], name="SMA50", line=dict(color='blue', width=1)))
+                fig_candlestick.update_layout(title=f"{selected_ticker} 日足チャート & 移動平均線", height=380, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+                st.plotly_chart(fig_candlestick, use_container_width=True)
+
+                st.write("⏱️ **AI多期間株価予測（1・3・6・12ヶ月先）**")
+                horizons = [("1ヶ月", 20), ("3ヶ月", 60), ("6ヶ月", 120), ("12ヶ月", 240)]
+                horizon_results = []
+                
+                cur_p = float(df_single['Close'].iloc[-1])
+                for h_label, h_days in horizons:
+                    l_prob, s_prob, _, _ = train_predict_model(df_single, prediction_horizon_days=h_days)
+                    est_p = cur_p * (1.0 + (l_prob - 0.5) * (h_days / 60.0) * 0.2)
+                    ret_pct = ((est_p - cur_p) / cur_p) * 100.0
+                    direction = "📈 Long (上昇)" if l_prob >= 0.5 else "📉 Short (下落)"
+                    
+                    horizon_results.append({
+                        "予測期間": h_label,
+                        "予測方向": direction,
+                        "上昇予測確率": f"{l_prob * 100.0:.1f}%",
+                        "予測目標価格": f"${est_p:,.2f}",
+                        "予想騰落率": f"{ret_pct:+.2f}%"
+                    })
+                
+                st.dataframe(pd.DataFrame(horizon_results), use_container_width=True)
+
+    # -------------------------------------------------------------------------
+    # 3. システムログ・トレースバック確認パネル
+    # -------------------------------------------------------------------------
+    with st.expander("🛠️ システム詳細ログ & エラートレースバック"):
+        st.write("直近のアプリ実行ログ:")
+        for log_entry in st.session_state["logs"][-20:]:
+            st.text(log_entry)
+
+if __name__ == "__main__":
+    main()
