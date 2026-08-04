@@ -382,4 +382,4 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 
 # TAB 1: 上昇予測 TOP3
 with tab1:
-    st.subheader(f"【{selected_country}】
+    st.subheader(f"【{selected_country}】")
