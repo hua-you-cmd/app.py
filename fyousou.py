@@ -3,7 +3,7 @@
 # ==========================================
 
 """
-GMO / SBI FX クオンツAI予測ダッシュボード (fyousou.py - 完全独立スタンドアロン版)
+クオンツAI予測ダッシュボード (fyousou.py - 完全独立スタンドアロン版)
 Yahoo Financeから主要10通貨ペアデータをリアルタイム取得し、
 機械学習(RandomForest)とテクニカル指標(SMA, RSI, MACD, ATR, Bollinger)から目標pips到達確率を算出・可視化します。
 【新機能】予測精度トラッカー(Prediction Tracker) & 継続的再学習(Continual Learning)を搭載。
